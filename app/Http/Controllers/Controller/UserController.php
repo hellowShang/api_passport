@@ -72,10 +72,10 @@ class UserController extends Controller
         $data = json_decode($str,true);
         // 验非空
         if(empty($data['email'])){
-            $this-> error(40003,'邮箱账号不能为空');
+            $this-> error(40001,'邮箱账号不能为空');
         }
         if(empty($data['pass'])){
-            $this-> error(40003,'密码不能为空');
+            $this-> error(40001,'密码不能为空');
         }
         // 验证账号、密码
         $arr = DB::table('userinfo')->where(['email' => $data['email']])->first();
