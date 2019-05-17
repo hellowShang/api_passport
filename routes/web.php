@@ -35,3 +35,6 @@ Route::post('/user/joinCart','Controller\UserController@joinCart');
 
 // 购物车数据
 Route::get('/user/cartInfo','Controller\UserController@cartInfo');
+
+// 订单生成
+Route::get('/user/orderGenerate','Controller\UserController@orderGenerate');
