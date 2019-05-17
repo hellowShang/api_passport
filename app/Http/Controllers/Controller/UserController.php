@@ -19,12 +19,20 @@ class UserController extends Controller
         die(json_encode($json,JSON_UNESCAPED_UNICODE));
     }
 
-    // 正确
-    public function success($num,$msg,$data){
+    // 正确(返回参数)
+    public function success($num,$data=[]){
+        $json = [
+            'errcode'       =>  $num,
+            'data'          =>  $data
+        ];
+        die(json_encode($json,JSON_UNESCAPED_UNICODE));
+    }
+
+    // 正确(不返回参数)
+    public function successful($num,$msg){
         $json = [
             'errcode'       =>  $num,
             'msg'           =>  $msg,
-            'data'          =>  $data
         ];
         die(json_encode($json,JSON_UNESCAPED_UNICODE));
     }
@@ -60,7 +68,7 @@ class UserController extends Controller
         $id = DB::table('userinfo')->insertGetId($data);
         // 判断提示
         if($id){
-            $this->error(0,'注册成功');
+            $this->successful(0,'注册成功');
         }else{
             $this->error(40005,'注册失败');
         }
@@ -97,6 +105,93 @@ class UserController extends Controller
             }
         }else{
             $this->error(40005,'账号错误');
+        }
+    }
+
+    // 获取用户信息
+    public function getUserInfo(){
+        $id = request()->id;
+        $userInfo = DB::table('userinfo')->where(['id' => $id])->first();
+        if($userInfo){
+            $data = json_decode(json_encode($userInfo),true);
+            die($this->success(0,$data));
+        }else{
+            die($this->error(50000,'暂时没有数据'));
+        }
+    }
+
+    // 获取商品信息
+    public  function getGoodsInfo(){
+        $goodsInfo = DB::table('shop_goods')->limit(5)->get();
+        if($goodsInfo){
+            die($this->success(0,['goodsinfo' => $goodsInfo]));
+        }else{
+            die($this->error(50000,'暂时没有数据'));
+        }
+    }
+
+    // 获取单个商品信息
+    public function getGoodsDetail(){
+        $id = request()->id;
+        if(empty($id)){
+            die($this->error(40001,'缺少参数'));
+        }
+        $goodsInfo = DB::table('shop_goods')->where(['goods_id' => $id])->first();
+        if($goodsInfo){
+            $goodsimgs = explode('|',rtrim($goodsInfo->goods_imgs,"|"));
+            $goodsInfo->goods_imgs = $goodsimgs;
+            die($this->success(0,['goodsinfo' => $goodsInfo]));
+        }else{
+            die($this->error(50000,'暂时没有数据'));
+        }
+    }
+
+    // 加入购物车
+    public function joinCart(){
+        $data = json_decode(file_get_contents('php://input'),true);
+        if($data){
+            $cartInfo = DB::table('shop_cart')->where(['goods_id' => $data['data']['goodsinfo']['goods_id']])->first();
+            if($cartInfo){
+                $cartInfo = json_decode(json_encode($cartInfo),true);
+                $update_data = [
+                    'buy_number' => $cartInfo['buy_number'] + 1,
+                    'create_time'   => time(),
+                    'update_time'   => time(),
+                ];
+                $res = DB::table('shop_cart')->where(['goods_id' => $cartInfo['goods_id']])->update($update_data);
+            }else{
+                $cart_data = [
+                    'goods_id'      => $data['data']['goodsinfo']['goods_id'],
+                    'user_id'       => $data['user_id'],
+                    'create_time'   => time(),
+                    'update_time'   => time(),
+                ];
+                $res = DB::table('shop_cart')->insert($cart_data);
+            }
+            if($res){
+                $this->successful(0,'加入购物车成功');
+            }else{
+                $this->error(40006,'加入购物车失败');
+            }
+        }else{
+            $this->error(40001,'参数错误');
+        }
+    }
+
+    // 购物车数据
+    public function cartInfo(){
+        $uid = request()->uid;
+        if(empty($uid)){
+            die($this->error(40001,'缺少参数'));
+        }
+        $cartInfo = DB::table('shop_cart')
+            ->join('shop_goods','shop_goods.goods_id','=','shop_cart.goods_id')
+            ->where(['user_id' => $uid,'cart_status' => 1])
+            ->get();
+        if($cartInfo){
+            $this->success(0,['cartInfo' => $cartInfo]);
+        }else{
+            $this->error(50000,'购物车空空如也哦');
         }
     }
 }
