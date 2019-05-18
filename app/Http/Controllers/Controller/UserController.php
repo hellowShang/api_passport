@@ -72,7 +72,7 @@ class UserController extends Controller
                     Redis::set($key,$token);
                     Redis::expire($key,604800);
                 }
-                success(0,'登录成功',['token' => base64_encode($token),'id' => $arr['id']]);
+                die(['errcode'=>0,'msg' => '登录成功','data' => ['token' => base64_encode($token),'id' => $arr['id']]]);
             }else{
                 error(40005,'密码错误');
             }
