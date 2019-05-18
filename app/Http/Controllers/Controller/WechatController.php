@@ -19,7 +19,7 @@ class WechatController extends Controller
      * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
      *
      */
-    public function wecharPay(){
+    public function pay(){
         $total_fee =1;                                              // 支付金额
         $out_trade_no = $_GET['order_no'];                          // 订单号
         $info = [

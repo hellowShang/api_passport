@@ -51,6 +51,12 @@ Route::post('alipay/notify','Controller\AlipayController@notify');
 
 
 // 微信APP支付
-Route::get('wechatpay','Controller\WechatController@pay');
-// 微信异步回调
-Route::post('wechat/notify','Controller\WechatController@notify');
+Route::get('wechatpay',function(){
+    echo $_GET['id'];
+    echo $_GET['token'];
+    echo $_GET['order_no'];die;
+    echo '该商户暂未开通此业务，请见谅，正在跳转支付宝';
+});
+//Route::get('wechatpay','Controller\WechatController@pay');
+//// 微信异步回调
+//Route::post('wechat/notify','Controller\WechatController@notify');
