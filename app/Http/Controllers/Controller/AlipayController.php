@@ -127,7 +127,7 @@ class AlipayController extends Controller
         $str = $_POST;
         $data = "\n".date('Y-m-d H:i:s').json_encode($str)."\n\r";
         is_dir('logs') or mkdir('logs',0777,true);
-        file_get_contents('logs/notify.log',$data,FILE_APPEND);
+        file_put_contents('logs/notify.log',$data,FILE_APPEND);
 
         /*
         if($result) {//验证成功
