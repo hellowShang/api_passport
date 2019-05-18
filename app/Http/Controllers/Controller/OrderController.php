@@ -18,7 +18,6 @@ class OrderController extends Controller
     public function orderGenerate(){
         $str = request()->goods_id;
         $uid = request()->uid;
-        $pay_way = request()->pay_way;
 
         // 验证
         if(empty($str) || empty($uid)){
@@ -71,7 +70,6 @@ class OrderController extends Controller
             $orderInfo['order_no'] = $order_no;
             $orderInfo['order_amount'] = $order_amount;
             $orderInfo['user_id'] = $uid;
-            $orderInfo['pay_way'] = $pay_way;
             $orderInfo['create_time'] = time();
             $orderInfo['update_time'] = time();
 
