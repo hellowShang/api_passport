@@ -18,7 +18,8 @@ class OrderController extends Controller
     public function orderGenerate(){
         $str = request()->goods_id;
         $uid = request()->uid;
-        $pay_way = 1;
+        $pay_way = request()->pay_way;
+
         // 验证
         if(empty($str) || empty($uid)){
             die(error(40001,'缺少参数'));
@@ -45,9 +46,10 @@ class OrderController extends Controller
             }else{
                 $cartInfo = DB::table('shop_cart')
                     ->join('shop_goods','shop_goods.goods_id','=','shop_cart.goods_id')
-                    ->where(['goods_id' => $goods_id,'user_id' => $uid])
+                    ->where(['shop_cart.goods_id' => $goods_id,'shop_cart.user_id' => $uid])
                     ->first();
             }
+
             if(!$cartInfo){
                 throw new \Exception('购物车空空如也');
             }
@@ -58,15 +60,21 @@ class OrderController extends Controller
 
             $order_no = $this->order_no($uid);
             $order_amount = 0;
-            foreach($cartInfo as $k => $v){
-                $order_amount += $v['buy_number'] * $v['self_price'];
+            if(strpos($str,',')){
+                foreach($cartInfo as $k => $v){
+                    $order_amount += $v['buy_number'] * $v['self_price'];
+                }
+            }else{
+                $order_amount += $cartInfo['buy_number'] * $cartInfo['self_price'];
             }
+
             $orderInfo['order_no'] = $order_no;
             $orderInfo['order_amount'] = $order_amount;
             $orderInfo['user_id'] = $uid;
             $orderInfo['pay_way'] = $pay_way;
             $orderInfo['create_time'] = time();
             $orderInfo['update_time'] = time();
+
             // 入库
             $order_id = DB::table('shop_order')->insertGetId($orderInfo);
             if(!$order_id){
@@ -75,16 +83,28 @@ class OrderController extends Controller
 
             // 订单详情入库
             $orderDetail = [];
-            foreach($cartInfo as $k => $v){
-                $orderDetail[$k]['order_id'] = $order_id;
-                $orderDetail[$k]['goods_id'] = $v['goods_id'];
-                $orderDetail[$k]['user_id'] = $uid;
-                $orderDetail[$k]['buy_number'] = $v['buy_number'];
-                $orderDetail[$k]['self_price'] = $v['self_price'];
-                $orderDetail[$k]['goods_name'] = $v['goods_name'];
-                $orderDetail[$k]['goods_img'] = $v['goods_img'];
-                $orderDetail[$k]['create_time'] = time();
-                $orderDetail[$k]['update_time'] = time();
+            if(strpos($str,',')){
+                foreach($cartInfo as $k => $v){
+                    $orderDetail[$k]['order_no'] = $order_no;
+                    $orderDetail[$k]['goods_id'] = $v['goods_id'];
+                    $orderDetail[$k]['user_id'] = $uid;
+                    $orderDetail[$k]['buy_number'] = $v['buy_number'];
+                    $orderDetail[$k]['self_price'] = $v['self_price'];
+                    $orderDetail[$k]['goods_name'] = $v['goods_name'];
+                    $orderDetail[$k]['goods_img'] = $v['goods_img'];
+                    $orderDetail[$k]['create_time'] = time();
+                    $orderDetail[$k]['update_time'] = time();
+                }
+            }else{
+                $orderDetail['order_no'] = $order_no;
+                $orderDetail['goods_id'] = $cartInfo['goods_id'];
+                $orderDetail['user_id'] = $uid;
+                $orderDetail['buy_number'] = $cartInfo['buy_number'];
+                $orderDetail['self_price'] = $cartInfo['self_price'];
+                $orderDetail['goods_name'] = $cartInfo['goods_name'];
+                $orderDetail['goods_img'] = $cartInfo['goods_img'];
+                $orderDetail['create_time'] = time();
+                $orderDetail['update_time'] = time();
             }
 
             // 入库
@@ -94,11 +114,12 @@ class OrderController extends Controller
             }
 
             // 购物车数据删除(修改状态)
-            $orderDetail_goods_id = array_column($orderDetail,'goods_id');
-            if(count($orderDetail_goods_id) == 2){
-                $res2 = DB::table('shop_cart')->where('user_id',$uid)->whereIn('goods_id',$orderDetail_goods_id)->update(['cart_status' => 2]);
+
+            if(is_array($goods_id)){
+                $res2 = DB::table('shop_cart')->where('user_id',$uid)->whereIn('goods_id',$goods_id)->update(['cart_status' => 2]);
             }else{
-                $res2 = DB::table('shop_cart')->where(['goods_id' => $orderDetail_goods_id,'user_id' => $uid])->update(['cart_status' => 2]);
+                $where = ['goods_id' => $goods_id,'user_id' => $uid];
+                $res2 = DB::table('shop_cart')->where($where)->update(['cart_status' => 2]);
             }
 
             if(!$res2){
@@ -107,8 +128,7 @@ class OrderController extends Controller
 
             //如果成功就提交
             DB::commit();
-            successful(0,'下单成功');
-
+            die(json_encode(['errcode' => 0,'msg' => '下单成功','data' => ['order_no' => $order_no]]));
         }catch ( \Exception $e){
             //如果失败就回滚
             DB::rollback();
