@@ -52,10 +52,8 @@ Route::post('alipay/notify','Controller\AlipayController@notify');
 
 // 微信APP支付
 Route::get('wechatpay',function(){
-    echo $_GET['id'];
-    echo $_GET['token'];
-    echo $_GET['order_no'];die;
     echo '该商户暂未开通此业务，请见谅，正在跳转支付宝';
+    header('Refresh:3;url=http://passport.lab993.com/alipay?id='.$_GET['id'].'&token='.$_GET['token'].'order_no'.$_GET['order_no']);
 });
 //Route::get('wechatpay','Controller\WechatController@pay');
 //// 微信异步回调
