@@ -42,13 +42,15 @@ Route::get('cartInfo','Controller\CartController@cartInfo');
 // 订单生成
 Route::get('orderGenerate','Controller\OrderController@orderGenerate');
 
-// 支付宝支付
+// 支付宝手机支付
 Route::get('alipay','Controller\AlipayController@pay');
-// 同步通知
+// 支付宝同步通知
 Route::get('alipay/return_url','Controller\AlipayController@return_url');
-// 异步回调
+// 支付宝异步回调
 Route::post('alipay/notify','Controller\AlipayController@notify');
 
 
-// 微信支付
+// 微信APP支付
 Route::get('wechatpay','Controller\WechatController@pay');
+// 微信异步回调
+Route::post('wechat/notify','Controller\WechatController@notify');
