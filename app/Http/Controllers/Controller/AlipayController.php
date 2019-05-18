@@ -57,22 +57,6 @@ class AlipayController extends Controller
 
         ];
 
-//        'sign'          => '123123',
-//            'iu'            => '',
-//            'ii'            => [
-//            'a'         => 'aaaaa'
-//        ]
-
-//        // 剔除sign和空值
-//        foreach($data as $k=>$v){
-//            if($k = 'sign'){
-//                unset($data[$k]);
-//            }else if($v = '' || is_array($v)){
-////                unset($data[$k]);
-//            }
-//        }
-//        echo "<pre>";print_r($data);echo "</pre>";die;
-
         // 签名
         $sign = $this->sign($data);
         $data['sign'] = $sign;
@@ -117,59 +101,52 @@ class AlipayController extends Controller
 
     // 同步通知
     public function return_url(){
-        echo '支付成功，订单号为：'.$_GET['out_trade_no'].'正在努力发货';
+        echo '支付成功，订单号为：'.$_GET['out_trade_no'].'支付宝交易号为：'.$_GET['trade_no'].',正在努力发货';
         header('Refresh:3;url=http://127.0.0.1:8848/Hellow world/index.html');
     }
 
     // 异步通知
     public function notify(){
         // 接收数据
-        $str = $_POST;
-        $data = "\n".date('Y-m-d H:i:s').json_encode($str)."\n\r";
+        $data = json_encode($_POST);
+        $str = "\n".date('Y-m-d H:i:s').$data."\n\r";
         is_dir('logs') or mkdir('logs',0777,true);
-        file_put_contents('logs/notify.log',$data,FILE_APPEND);
+        file_put_contents('logs/notify.log',$str,FILE_APPEND);
+        $arr = json_decode($data,true);
 
-        /*
-        if($result) {//验证成功
-            /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            //请在这里加上商户的业务逻辑程序代
+        // 验签
+        $str = $this->checkSign($arr);
+        $sign = base64_decode($arr['sign']);
+        // 获取支付宝公钥
+        $key = openssl_get_publickey('file://'.storage_path('app/keys/alipaypub.pem'));
+        $res = openssl_verify($str,$sign,$key,OPENSSL_ALGO_SHA256);
 
-
-            //——请根据您的业务逻辑来编写程序（以下代码仅作参考）——
-
-            //获取支付宝的通知返回参数，可参考技术文档中服务器异步通知参数列表
-
+        if($res) {//验证成功
             //商户订单号
-
             $out_trade_no = $_POST['out_trade_no'];
 
-            //支付宝交易号
-
-            $trade_no = $_POST['trade_no'];
-
-            //交易状态
-            $trade_status = $_POST['trade_status'];
-
             if($_POST['trade_status'] == 'TRADE_FINISHED') {
-
+            }else if ($_POST['trade_status'] == 'TRADE_SUCCESS') {
+                DB::table('shop_order')->where(['order_no' => $out_trade_no])->update(['pay_status' => 2]);
             }
-            else if ($_POST['trade_status'] == 'TRADE_SUCCESS') {
-                //判断该笔订单是否在商户网站中已经做过处理
-                //如果没有做过处理，根据订单号（out_trade_no）在商户网站的订单系统中查到该笔订单的详细，并执行商户的业务程序
-                //请务必判断请求时的total_amount与通知时获取的total_fee为一致的
-                //如果有做过处理，不执行商户的业务程序
-                //注意：
-                //付款完成后，支付宝系统发送该交易状态通知
-            }
-            //——请根据您的业务逻辑来编写程序（以上代码仅作参考）——
-
             echo "success";		//请不要修改或删除
-
         }else {
             //验证失败
             echo "fail";	//请不要修改或删除
-
         }
-        */
+    }
+
+    // 验签参数处理(拼接)
+    public function checkSign($data){
+        // 1. 去除sign sign_type
+        unset($data['sign']);
+        unset($data['sign_type']);
+
+        // 字典序排序
+        ksort($data);
+
+        // 拼接
+        $str = $this->joint($data);
+        return $str;
     }
 }

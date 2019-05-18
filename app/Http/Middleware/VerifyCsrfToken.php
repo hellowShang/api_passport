@@ -22,6 +22,6 @@ class VerifyCsrfToken extends Middleware
         //
         '/user/*',
         'joinCart',
-        'alipay/notify'
+        'alipay/*'
     ];
 }
